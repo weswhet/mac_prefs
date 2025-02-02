@@ -1,0 +1,1 @@
+# macOS Preferences Go Package
