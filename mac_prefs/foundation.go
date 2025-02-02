@@ -108,43 +108,27 @@ func CFDictionaryToMap(cfDict C.CFDictionaryRef) map[C.CFTypeRef]C.CFTypeRef {
 // ConvertMapToCFDictionary converts a map[string]interface{} to a CFDictionaryRef.
 func ConvertMapToCFDictionary(attr map[string]interface{}) (C.CFDictionaryRef, error) {
 	m := make(map[C.CFTypeRef]C.CFTypeRef)
-	for key, i := range attr {
-		var valueRef C.CFTypeRef
-		switch v := i.(type) {
-		case C.CFTypeRef:
-			valueRef = v
-		case bool:
-			if v {
-				valueRef = C.CFTypeRef(C.kCFBooleanTrue)
-			} else {
-				valueRef = C.CFTypeRef(C.kCFBooleanFalse)
-			}
-		case []byte:
-			bytesRef, err := BytesToCFData(v)
-			if err != nil {
-				return NilCFDictionary, err
-			}
-			valueRef = C.CFTypeRef(bytesRef)
-			defer C.CFRelease(valueRef)
-		case string:
-			stringRef, err := StringToCFString(v)
-			if err != nil {
-				return NilCFDictionary, err
-			}
-			valueRef = C.CFTypeRef(stringRef)
-			defer C.CFRelease(valueRef)
-		default:
-			return NilCFDictionary, fmt.Errorf("unsupported value type: %v", reflect.TypeOf(i))
-		}
+	for key, value := range attr {
 		keyRef, err := StringToCFString(key)
 		if err != nil {
-			return NilCFDictionary, err
+			return NilCFDictionary, fmt.Errorf("error converting key to CFString: %v", err)
 		}
+
+		valueRef, err := ConvertToCFType(value)
+		if err != nil {
+			C.CFRelease(C.CFTypeRef(keyRef))
+			return NilCFDictionary, fmt.Errorf("error converting value for key %s: %v", key, err)
+		}
+
 		m[C.CFTypeRef(keyRef)] = valueRef
 	}
 
 	cfDict, err := MapToCFDictionary(m)
 	if err != nil {
+		for k, v := range m {
+			C.CFRelease(k)
+			C.CFRelease(v)
+		}
 		return NilCFDictionary, err
 	}
 	return cfDict, nil
@@ -241,6 +225,13 @@ func ConvertToCFType(value interface{}) (C.CFTypeRef, error) {
 		}
 		cfArray := C.CFArrayCreate(C.kCFAllocatorDefault, (*unsafe.Pointer)(unsafe.Pointer(&cfValues[0])), C.CFIndex(len(cfValues)), &C.kCFTypeArrayCallBacks)
 		return C.CFTypeRef(cfArray), nil
+	case map[string]interface{}:
+		// Convert map[string]interface{} to CFDictionaryRef
+		cfDict, err := ConvertMapToCFDictionary(v)
+		if err != nil {
+			return NilCFType, fmt.Errorf("error converting map to CFDictionary: %v", err)
+		}
+		return C.CFTypeRef(cfDict), nil
 	default:
 		return NilCFType, fmt.Errorf("unsupported type: %T", value)
 	}
