@@ -229,6 +229,18 @@ func ConvertToCFType(value interface{}) (C.CFTypeRef, error) {
 			numRef = C.CFNumberCreate(C.kCFAllocatorDefault, C.kCFNumberLongLongType, unsafe.Pointer(&int64Value))
 		}
 		return C.CFTypeRef(numRef), nil
+	case []interface{}:
+		// Convert slice of interface{} to CFArrayRef
+		cfValues := make([]C.CFTypeRef, len(v))
+		for i, item := range v {
+			cfItem, err := ConvertToCFType(item)
+			if err != nil {
+				return NilCFType, fmt.Errorf("error converting array item at index %d: %v", i, err)
+			}
+			cfValues[i] = cfItem
+		}
+		cfArray := C.CFArrayCreate(C.kCFAllocatorDefault, (*unsafe.Pointer)(unsafe.Pointer(&cfValues[0])), C.CFIndex(len(cfValues)), &C.kCFTypeArrayCallBacks)
+		return C.CFTypeRef(cfArray), nil
 	default:
 		return NilCFType, fmt.Errorf("unsupported type: %T", value)
 	}
@@ -262,6 +274,19 @@ func ConvertFromCFType(cfType C.CFTypeRef) (interface{}, error) {
 		default:
 			return nil, fmt.Errorf("unsupported CFNumber type")
 		}
+	case C.CFArrayGetTypeID():
+		cfArray := C.CFArrayRef(cfType)
+		count := C.CFArrayGetCount(cfArray)
+		result := make([]interface{}, count)
+		for i := C.CFIndex(0); i < count; i++ {
+			item := C.CFArrayGetValueAtIndex(cfArray, i)
+			convertedItem, err := ConvertFromCFType(item)
+			if err != nil {
+				return nil, fmt.Errorf("error converting array item at index %d: %v", i, err)
+			}
+			result[i] = convertedItem
+		}
+		return result, nil
 	default:
 		return nil, fmt.Errorf("unsupported CFTypeRef type")
 	}
