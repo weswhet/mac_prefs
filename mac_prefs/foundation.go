@@ -280,7 +280,7 @@ func ConvertFromCFType(cfType C.CFTypeRef) (interface{}, error) {
 		result := make([]interface{}, count)
 		for i := C.CFIndex(0); i < count; i++ {
 			item := C.CFArrayGetValueAtIndex(cfArray, i)
-			convertedItem, err := ConvertFromCFType(item)
+			convertedItem, err := ConvertFromCFType(C.CFTypeRef(item))
 			if err != nil {
 				return nil, fmt.Errorf("error converting array item at index %d: %v", i, err)
 			}
