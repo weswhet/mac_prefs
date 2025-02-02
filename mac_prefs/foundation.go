@@ -159,14 +159,14 @@ func Release(ref C.CFTypeRef) {
 
 // TimeToCFDate converts a Go time.Time to a CFDateRef.
 func TimeToCFDate(t time.Time) C.CFDateRef {
-	seconds := float64(t.UnixNano()) / 1e9
-	return C.CFDateCreate(C.kCFAllocatorDefault, C.CFAbsoluteTime(seconds+978307200)) // Add seconds between 1970 and 2001
+	seconds := float64(t.Unix()) - 978307200 // Subtract seconds between 1970 and 2001
+	return C.CFDateCreate(C.kCFAllocatorDefault, C.CFAbsoluteTime(seconds))
 }
 
 // CFDateToTime converts a CFDateRef to a Go time.Time.
 func CFDateToTime(dateRef C.CFDateRef) time.Time {
 	seconds := float64(C.CFDateGetAbsoluteTime(dateRef))
-	return time.Unix(int64(seconds-978307200), 0).UTC() // Subtract seconds between 1970 and 2001
+	return time.Unix(int64(seconds+978307200), 0).UTC() // Add seconds between 1970 and 2001
 }
 
 // ConvertToCFType converts a Go value to its corresponding CFTypeRef.
