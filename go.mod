@@ -1,3 +1,3 @@
-module github.com/stripe/mac_prefs
+module github.com/weswhet/mac_prefs
 
 go 1.20
