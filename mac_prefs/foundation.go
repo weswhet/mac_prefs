@@ -243,7 +243,7 @@ func ConvertFromCFType(cfType C.CFTypeRef) (interface{}, error) {
 	case C.CFDataGetTypeID():
 		return CFDataToBytes(C.CFDataRef(cfType))
 	case C.CFBooleanGetTypeID():
-		return bool(C.CFBooleanGetValue(C.CFBooleanRef(cfType))), nil
+		return C.CFBooleanGetValue(C.CFBooleanRef(cfType)) != 0, nil
 	case C.CFDateGetTypeID():
 		return CFDateToTime(C.CFDateRef(cfType)), nil
 	case C.CFNumberGetTypeID():
