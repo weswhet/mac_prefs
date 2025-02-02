@@ -277,6 +277,22 @@ func ConvertFromCFType(cfType C.CFTypeRef) (interface{}, error) {
 			result[i] = convertedItem
 		}
 		return result, nil
+	case C.CFDictionaryGetTypeID():
+		cfDict := C.CFDictionaryRef(cfType)
+		count := C.CFDictionaryGetCount(cfDict)
+		keys := make([]C.CFTypeRef, count)
+		values := make([]C.CFTypeRef, count)
+		C.CFDictionaryGetKeysAndValues(cfDict, (*unsafe.Pointer)(unsafe.Pointer(&keys[0])), (*unsafe.Pointer)(unsafe.Pointer(&values[0])))
+		result := make(map[string]interface{}, count)
+		for i := C.CFIndex(0); i < count; i++ {
+			key := CFStringToString(C.CFStringRef(keys[i]))
+			value, err := ConvertFromCFType(values[i])
+			if err != nil {
+				return nil, fmt.Errorf("error converting dictionary value for key %s: %v", key, err)
+			}
+			result[key] = value
+		}
+		return result, nil
 	default:
 		return nil, fmt.Errorf("unsupported CFTypeRef type")
 	}
