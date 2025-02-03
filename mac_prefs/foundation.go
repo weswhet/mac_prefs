@@ -180,41 +180,14 @@ func ConvertToCFType(value interface{}) (C.CFTypeRef, error) {
 	case time.Time:
 		return C.CFTypeRef(TimeToCFDate(v)), nil
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
-		// Convert numeric types to CFNumber
-		var int64Value int64
-		var floatValue float64
-		switch num := v.(type) {
-		case int:
-			int64Value = int64(num)
-		case int8:
-			int64Value = int64(num)
-		case int16:
-			int64Value = int64(num)
-		case int32:
-			int64Value = int64(num)
-		case int64:
-			int64Value = num
-		case uint:
-			int64Value = int64(num)
-		case uint8:
-			int64Value = int64(num)
-		case uint16:
-			int64Value = int64(num)
-		case uint32:
-			int64Value = int64(num)
-		case uint64:
-			int64Value = int64(num)
-		case float32:
-			floatValue = float64(num)
-		case float64:
-			floatValue = num
-		}
-
 		var numRef C.CFNumberRef
-		if floatValue != 0 {
-			numRef = C.CFNumberCreate(C.kCFAllocatorDefault, C.kCFNumberDoubleType, unsafe.Pointer(&floatValue))
-		} else {
+		switch num := v.(type) {
+		case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+			int64Value := reflect.ValueOf(num).Int()
 			numRef = C.CFNumberCreate(C.kCFAllocatorDefault, C.kCFNumberLongLongType, unsafe.Pointer(&int64Value))
+		case float32, float64:
+			floatValue := reflect.ValueOf(num).Float()
+			numRef = C.CFNumberCreate(C.kCFAllocatorDefault, C.kCFNumberDoubleType, unsafe.Pointer(&floatValue))
 		}
 		return C.CFTypeRef(numRef), nil
 	default:
@@ -290,15 +263,15 @@ func ConvertFromCFType(cfType C.CFTypeRef) (interface{}, error) {
 	case C.CFDateGetTypeID():
 		return CFDateToTime(C.CFDateRef(cfType)), nil
 	case C.CFNumberGetTypeID():
-		var int64Value int64
+		var intValue int
 		var floatValue float64
 		numberType := C.CFNumberGetType(C.CFNumberRef(cfType))
 		switch numberType {
 		case C.kCFNumberSInt8Type, C.kCFNumberSInt16Type, C.kCFNumberSInt32Type, C.kCFNumberSInt64Type,
 			C.kCFNumberCharType, C.kCFNumberShortType, C.kCFNumberIntType, C.kCFNumberLongType, C.kCFNumberLongLongType,
 			C.kCFNumberCFIndexType, C.kCFNumberNSIntegerType:
-			C.CFNumberGetValue(C.CFNumberRef(cfType), C.kCFNumberLongLongType, unsafe.Pointer(&int64Value))
-			return int64Value, nil
+			C.CFNumberGetValue(C.CFNumberRef(cfType), C.kCFNumberLongLongType, unsafe.Pointer(&intValue))
+			return intValue, nil
 		case C.kCFNumberFloat32Type, C.kCFNumberFloat64Type, C.kCFNumberFloatType, C.kCFNumberDoubleType:
 			C.CFNumberGetValue(C.CFNumberRef(cfType), C.kCFNumberDoubleType, unsafe.Pointer(&floatValue))
 			return floatValue, nil
