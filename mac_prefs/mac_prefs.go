@@ -94,9 +94,9 @@ func Set(key string, value interface{}, applicationID string, scope PreferenceSc
 }
 
 // SetValue sets a preference value for the given key and application ID.
-// This function uses the CurrentUserCurrentHost scope.
+// This function uses the CurrentUserAnyHost scope.
 func SetValue(key string, value interface{}, appID string) error {
-	return Set(key, value, appID, CurrentUserCurrentHost)
+	return Set(key, value, appID, CurrentUserAnyHost)
 }
 
 // Get retrieves a preference value for the given key, application ID, and preference scope.
@@ -143,7 +143,7 @@ func Get(key string, applicationID string, scope PreferenceScope) (interface{}, 
 }
 
 // GetValue retrieves a preference value for the given key and application ID.
-// This function uses the CurrentUserCurrentHost scope.
+// This function uses the CurrentUserAnyHost scope.
 func GetValue(key string, appID string) (interface{}, error) {
-	return Get(key, appID, CurrentUserCurrentHost)
+	return Get(key, appID, CurrentUserAnyHost)
 }
