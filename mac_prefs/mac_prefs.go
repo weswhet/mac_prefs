@@ -85,7 +85,7 @@ func Set(key string, value interface{}, applicationID string, scope PreferenceSc
 
 	C.CFPreferencesSetValue(cKey, cValue, cAppID, cUserName, cHostName)
 
-	success := C.CFPreferencesAppSynchronize(cAppID)
+	success := C.CFPreferencesSynchronize(cAppID, cUserName, cHostName)
 	if success == C.false {
 		return fmt.Errorf("failed to synchronize preferences")
 	}
@@ -96,7 +96,34 @@ func Set(key string, value interface{}, applicationID string, scope PreferenceSc
 // SetValue sets a preference value for the given key and application ID.
 // This function uses the CurrentUserAnyHost scope.
 func SetApp(key string, value interface{}, appID string) error {
-	return Set(key, value, appID, CurrentUserAnyHost)
+	cKey, err := StringToCFString(key)
+	if err != nil {
+		return fmt.Errorf("error creating CFString for key: %v", err)
+	}
+	defer Release(C.CFTypeRef(cKey))
+
+	cValue, err := ConvertToCFType(value)
+	if err != nil {
+		return fmt.Errorf("error converting value to CFType: %v", err)
+	}
+	if cValue != NilCFType {
+		defer Release(cValue)
+	}
+
+	cAppID, err := StringToCFString(appID)
+	if err != nil {
+		return fmt.Errorf("error creating CFString for applicationID: %v", err)
+	}
+	defer Release(C.CFTypeRef(cAppID))
+
+	C.CFPreferencesSetAppValue(cKey, cValue, cAppID)
+
+	success := C.CFPreferencesAppSynchronize(cAppID)
+	if success == C.false {
+		return fmt.Errorf("failed to synchronize preferences")
+	}
+
+	return nil
 }
 
 // Get retrieves a preference value for the given key, application ID, and preference scope.
