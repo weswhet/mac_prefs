@@ -95,7 +95,7 @@ func Set(key string, value interface{}, applicationID string, scope PreferenceSc
 
 // SetValue sets a preference value for the given key and application ID.
 // This function uses the CurrentUserAnyHost scope.
-func SetValue(key string, value interface{}, appID string) error {
+func SetApp(key string, value interface{}, appID string) error {
 	return Set(key, value, appID, CurrentUserAnyHost)
 }
 
@@ -144,6 +144,26 @@ func Get(key string, applicationID string, scope PreferenceScope) (interface{}, 
 
 // GetValue retrieves a preference value for the given key and application ID.
 // This function uses the CurrentUserAnyHost scope.
-func GetValue(key string, appID string) (interface{}, error) {
+func GetApp(key string, appID string) (interface{}, error) {
+	cKey, err := StringToCFString(key)
+	if err != nil {
+		return nil, fmt.Errorf("error creating CFString for key: %v", err)
+	}
+	defer Release(C.CFTypeRef(cKey))
+
+	cAppID, err := StringToCFString(appID)
+	if err != nil {
+		return nil, fmt.Errorf("error creating CFString for applicationID: %v", err)
+	}
+	defer Release(C.CFTypeRef(cAppID))
+
 	return Get(key, appID, CurrentUserAnyHost)
+
+	value := C.CFPreferencesCopyAppValue(cKey, cAppID)
+	if value == NilCFType {
+		return nil, nil // Preference not found
+	}
+	defer Release(C.CFTypeRef(value))
+
+	return ConvertFromCFType(value)
 }
