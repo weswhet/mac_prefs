@@ -154,6 +154,10 @@ func CFDateToTime(dateRef C.CFDateRef) time.Time {
 
 // ConvertToCFType converts a Go value to its corresponding CFTypeRef.
 func ConvertToCFType(value interface{}) (C.CFTypeRef, error) {
+	if value == nil {
+		return NilCFType, nil
+	}
+
 	switch v := value.(type) {
 	case string:
 		cfStr, err := StringToCFString(v)
