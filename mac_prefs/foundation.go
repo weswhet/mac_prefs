@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"time"
 	"unsafe"
 )
@@ -269,8 +270,11 @@ func convertMapToCFDictionary(m interface{}) (C.CFTypeRef, error) {
 		}
 		cfDict[C.CFTypeRef(cfKey)] = cfValue
 	}
-	return C.CFTypeRef(MapToCFDictionary(cfDict))
-}
+	result, err := MapToCFDictionary(cfDict)
+	if err != nil {
+		return NilCFType, err
+	}
+	return C.CFTypeRef(result), nil
 }
 
 // ConvertFromCFType converts a CFTypeRef to its corresponding Go value.
