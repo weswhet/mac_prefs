@@ -7,7 +7,6 @@ package mac_prefs
 import "C"
 import (
 	"fmt"
-	"strings"
 )
 
 // UserType represents the type of user for preferences
