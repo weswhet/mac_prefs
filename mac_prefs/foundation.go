@@ -216,28 +216,61 @@ func ConvertToCFType(value interface{}) (C.CFTypeRef, error) {
 			numRef = C.CFNumberCreate(C.kCFAllocatorDefault, C.kCFNumberLongLongType, unsafe.Pointer(&int64Value))
 		}
 		return C.CFTypeRef(numRef), nil
-	case []interface{}:
-		// Convert slice of interface{} to CFArrayRef
-		cfValues := make([]C.CFTypeRef, len(v))
-		for i, item := range v {
-			cfItem, err := ConvertToCFType(item)
-			if err != nil {
-				return NilCFType, fmt.Errorf("error converting array item at index %d: %v", i, err)
-			}
-			cfValues[i] = cfItem
-		}
-		cfArray := C.CFArrayCreate(C.kCFAllocatorDefault, (*unsafe.Pointer)(unsafe.Pointer(&cfValues[0])), C.CFIndex(len(cfValues)), &C.kCFTypeArrayCallBacks)
-		return C.CFTypeRef(cfArray), nil
-	case map[string]interface{}:
-		// Convert map[string]interface{} to CFDictionaryRef
-		cfDict, err := ConvertMapToCFDictionary(v)
-		if err != nil {
-			return NilCFType, fmt.Errorf("error converting map to CFDictionary: %v", err)
-		}
-		return C.CFTypeRef(cfDict), nil
 	default:
+		// Handle generic slices
+		if slice, ok := value.([]interface{}); ok {
+			return convertSliceToCFArray(slice)
+		}
+		sliceValue := reflect.ValueOf(value)
+		if sliceValue.Kind() == reflect.Slice {
+			return convertSliceToCFArray(sliceValue.Interface())
+		}
+
+		// Handle generic maps
+		if m, ok := value.(map[string]interface{}); ok {
+			return convertMapToCFDictionary(m)
+		}
+		mapValue := reflect.ValueOf(value)
+		if mapValue.Kind() == reflect.Map && mapValue.Type().Key().Kind() == reflect.String {
+			return convertMapToCFDictionary(mapValue.Interface())
+		}
+
 		return NilCFType, fmt.Errorf("unsupported type: %T", value)
 	}
+}
+
+func convertSliceToCFArray(slice interface{}) (C.CFTypeRef, error) {
+	sliceValue := reflect.ValueOf(slice)
+	cfValues := make([]C.CFTypeRef, sliceValue.Len())
+	for i := 0; i < sliceValue.Len(); i++ {
+		cfItem, err := ConvertToCFType(sliceValue.Index(i).Interface())
+		if err != nil {
+			return NilCFType, fmt.Errorf("error converting array item at index %d: %v", i, err)
+		}
+		cfValues[i] = cfItem
+	}
+	cfArray := C.CFArrayCreate(C.kCFAllocatorDefault, (*unsafe.Pointer)(unsafe.Pointer(&cfValues[0])), C.CFIndex(len(cfValues)), &C.kCFTypeArrayCallBacks)
+	return C.CFTypeRef(cfArray), nil
+}
+
+func convertMapToCFDictionary(m interface{}) (C.CFTypeRef, error) {
+	mapValue := reflect.ValueOf(m)
+	cfDict := make(map[C.CFTypeRef]C.CFTypeRef)
+	for _, key := range mapValue.MapKeys() {
+		keyStr := key.String()
+		cfKey, err := StringToCFString(keyStr)
+		if err != nil {
+			return NilCFType, fmt.Errorf("error converting key to CFString: %v", err)
+		}
+		cfValue, err := ConvertToCFType(mapValue.MapIndex(key).Interface())
+		if err != nil {
+			C.CFRelease(C.CFTypeRef(cfKey))
+			return NilCFType, fmt.Errorf("error converting value for key %s: %v", keyStr, err)
+		}
+		cfDict[C.CFTypeRef(cfKey)] = cfValue
+	}
+	return C.CFTypeRef(MapToCFDictionary(cfDict))
+}
 }
 
 // ConvertFromCFType converts a CFTypeRef to its corresponding Go value.
