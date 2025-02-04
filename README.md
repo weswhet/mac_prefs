@@ -1,5 +1,9 @@
 # mac_prefs
 
+[![Build](https://github.com/weswhet/mac_prefs/actions/workflows/build.yml/badge.svg)](https://github.com/weswhet/mac_prefs/actions/workflows/build.yml)
+[![Lint](https://github.com/weswhet/mac_prefs/actions/workflows/lint.yml/badge.svg)](https://github.com/weswhet/mac_prefs/actions/workflows/lint.yml)
+[![Tests](https://github.com/weswhet/mac_prefs/actions/workflows/test.yml/badge.svg)](https://github.com/weswhet/mac_prefs/actions/workflows/test.yml)
+
 mac_prefs is a Go library for reading and writing macOS preferences using the CoreFoundation Preferences API. It provides a simple interface to interact with macOS system preferences and application-specific preferences.
 
 ## Features
