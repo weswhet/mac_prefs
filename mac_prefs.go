@@ -218,8 +218,6 @@ func GetApp(key string, appID string) (interface{}, error) {
 	}
 	defer release(C.CFTypeRef(cAppID))
 
-	return Get(key, appID, CurrentUserAnyHost)
-
 	value := C.CFPreferencesCopyAppValue(cKey, cAppID)
 	if value == NilCFType {
 		return nil, nil // Preference not found
