@@ -3,7 +3,7 @@ name: Go Build
 on: [push]
 
 jobs:
-  test:
+  build:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3

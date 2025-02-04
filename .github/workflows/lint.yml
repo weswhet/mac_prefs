@@ -1,4 +1,4 @@
-name: linting
+name: golangci-lint
 
 on: [push, pull_request]
 
@@ -13,3 +13,5 @@ jobs:
       - uses: actions/checkout@v2
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
+        with:
+          args: --out-format=colored-line-number
