@@ -1,3 +1,5 @@
+//go:build darwin
+
 package mac_prefs
 
 /*
@@ -42,26 +44,35 @@ var (
 )
 
 // Set sets a preference value for the given key, application ID, and preference scope.
+//
+// Parameters:
+//   - key: The preference key to set.
+//   - value: The value to set for the preference. Can be of various types (string, int, float, slice, map, time.Time).
+//   - applicationID: The bundle identifier of the application for which to set the preference.
+//   - scope: The PreferenceScope defining the user and host scope for the preference.
+//
+// Returns:
+//   - error: An error if the operation fails, nil otherwise.
 func Set(key string, value interface{}, applicationID string, scope PreferenceScope) error {
-	cKey, err := StringToCFString(key)
+	cKey, err := stringToCFString(key)
 	if err != nil {
 		return fmt.Errorf("error creating CFString for key: %v", err)
 	}
-	defer Release(C.CFTypeRef(cKey))
+	defer release(C.CFTypeRef(cKey))
 
-	cValue, err := ConvertToCFType(value)
+	cValue, err := convertToCFType(value)
 	if err != nil {
 		return fmt.Errorf("error converting value to CFType: %v", err)
 	}
 	if cValue != NilCFType {
-		defer Release(cValue)
+		defer release(cValue)
 	}
 
-	cAppID, err := StringToCFString(applicationID)
+	cAppID, err := stringToCFString(applicationID)
 	if err != nil {
 		return fmt.Errorf("error creating CFString for applicationID: %v", err)
 	}
-	defer Release(C.CFTypeRef(cAppID))
+	defer release(C.CFTypeRef(cAppID))
 
 	var cUserName C.CFStringRef
 	switch scope.User {
@@ -93,28 +104,35 @@ func Set(key string, value interface{}, applicationID string, scope PreferenceSc
 	return nil
 }
 
-// SetValue sets a preference value for the given key and application ID.
-// This function uses the CurrentUserAnyHost scope.
+// SetApp sets a preference value for the given key and application ID using the CurrentUserAnyHost scope.
+//
+// Parameters:
+//   - key: The preference key to set.
+//   - value: The value to set for the preference. Can be of various types (string, int, float, slice, map, time.Time).
+//   - appID: The bundle identifier of the application for which to set the preference.
+//
+// Returns:
+//   - error: An error if the operation fails, nil otherwise.
 func SetApp(key string, value interface{}, appID string) error {
-	cKey, err := StringToCFString(key)
+	cKey, err := stringToCFString(key)
 	if err != nil {
 		return fmt.Errorf("error creating CFString for key: %v", err)
 	}
-	defer Release(C.CFTypeRef(cKey))
+	defer release(C.CFTypeRef(cKey))
 
-	cValue, err := ConvertToCFType(value)
+	cValue, err := convertToCFType(value)
 	if err != nil {
 		return fmt.Errorf("error converting value to CFType: %v", err)
 	}
 	if cValue != NilCFType {
-		defer Release(cValue)
+		defer release(cValue)
 	}
 
-	cAppID, err := StringToCFString(appID)
+	cAppID, err := stringToCFString(appID)
 	if err != nil {
 		return fmt.Errorf("error creating CFString for applicationID: %v", err)
 	}
-	defer Release(C.CFTypeRef(cAppID))
+	defer release(C.CFTypeRef(cAppID))
 
 	C.CFPreferencesSetAppValue(cKey, cValue, cAppID)
 
@@ -127,18 +145,27 @@ func SetApp(key string, value interface{}, appID string) error {
 }
 
 // Get retrieves a preference value for the given key, application ID, and preference scope.
+//
+// Parameters:
+//   - key: The preference key to retrieve.
+//   - applicationID: The bundle identifier of the application for which to retrieve the preference.
+//   - scope: The PreferenceScope defining the user and host scope for the preference.
+//
+// Returns:
+//   - interface{}: The retrieved preference value. The type depends on what was originally stored.
+//   - error: An error if the operation fails, nil otherwise. Returns nil, nil if the preference is not found.
 func Get(key string, applicationID string, scope PreferenceScope) (interface{}, error) {
-	cKey, err := StringToCFString(key)
+	cKey, err := stringToCFString(key)
 	if err != nil {
 		return nil, fmt.Errorf("error creating CFString for key: %v", err)
 	}
-	defer Release(C.CFTypeRef(cKey))
+	defer release(C.CFTypeRef(cKey))
 
-	cAppID, err := StringToCFString(applicationID)
+	cAppID, err := stringToCFString(applicationID)
 	if err != nil {
 		return nil, fmt.Errorf("error creating CFString for applicationID: %v", err)
 	}
-	defer Release(C.CFTypeRef(cAppID))
+	defer release(C.CFTypeRef(cAppID))
 
 	var cUserName C.CFStringRef
 	switch scope.User {
@@ -164,25 +191,32 @@ func Get(key string, applicationID string, scope PreferenceScope) (interface{}, 
 	if value == NilCFType {
 		return nil, nil // Preference not found
 	}
-	defer Release(C.CFTypeRef(value))
+	defer release(C.CFTypeRef(value))
 
-	return ConvertFromCFType(value)
+	return convertFromCFType(value)
 }
 
-// GetValue retrieves a preference value for the given key and application ID.
-// This function uses the CurrentUserAnyHost scope.
+// GetApp retrieves a preference value for the given key and application ID using the CurrentUserAnyHost scope.
+//
+// Parameters:
+//   - key: The preference key to retrieve.
+//   - appID: The bundle identifier of the application for which to retrieve the preference.
+//
+// Returns:
+//   - interface{}: The retrieved preference value. The type depends on what was originally stored.
+//   - error: An error if the operation fails, nil otherwise. Returns nil, nil if the preference is not found.
 func GetApp(key string, appID string) (interface{}, error) {
-	cKey, err := StringToCFString(key)
+	cKey, err := stringToCFString(key)
 	if err != nil {
 		return nil, fmt.Errorf("error creating CFString for key: %v", err)
 	}
-	defer Release(C.CFTypeRef(cKey))
+	defer release(C.CFTypeRef(cKey))
 
-	cAppID, err := StringToCFString(appID)
+	cAppID, err := stringToCFString(appID)
 	if err != nil {
 		return nil, fmt.Errorf("error creating CFString for applicationID: %v", err)
 	}
-	defer Release(C.CFTypeRef(cAppID))
+	defer release(C.CFTypeRef(cAppID))
 
 	return Get(key, appID, CurrentUserAnyHost)
 
@@ -190,7 +224,7 @@ func GetApp(key string, appID string) (interface{}, error) {
 	if value == NilCFType {
 		return nil, nil // Preference not found
 	}
-	defer Release(C.CFTypeRef(value))
+	defer release(C.CFTypeRef(value))
 
-	return ConvertFromCFType(value)
+	return convertFromCFType(value)
 }

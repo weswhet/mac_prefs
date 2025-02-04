@@ -25,8 +25,8 @@ const (
 	NilCFType       C.CFTypeRef       = 0
 )
 
-// BytesToCFData converts a byte slice to a CFDataRef.
-func BytesToCFData(b []byte) (C.CFDataRef, error) {
+// bytesToCFData converts a byte slice to a CFDataRef.
+func bytesToCFData(b []byte) (C.CFDataRef, error) {
 	if uint64(len(b)) > math.MaxUint32 {
 		return C.CFDataRef(0), errors.New("data is too large")
 	}
@@ -41,13 +41,13 @@ func BytesToCFData(b []byte) (C.CFDataRef, error) {
 	return cfData, nil
 }
 
-// CFDataToBytes converts CFData to bytes.
-func CFDataToBytes(cfData C.CFDataRef) ([]byte, error) {
+// cfDataToBytes converts CFData to bytes.
+func cfDataToBytes(cfData C.CFDataRef) ([]byte, error) {
 	return C.GoBytes(unsafe.Pointer(C.CFDataGetBytePtr(cfData)), C.int(C.CFDataGetLength(cfData))), nil
 }
 
-// StringToCFString converts a Go string to a CFStringRef.
-func StringToCFString(s string) (C.CFStringRef, error) {
+// stringToCFString converts a Go string to a CFStringRef.
+func stringToCFString(s string) (C.CFStringRef, error) {
 	cstr := C.CString(s)
 	defer C.free(unsafe.Pointer(cstr))
 	cfStr := C.CFStringCreateWithCString(C.kCFAllocatorDefault, cstr, C.kCFStringEncodingUTF8)
@@ -57,8 +57,8 @@ func StringToCFString(s string) (C.CFStringRef, error) {
 	return cfStr, nil
 }
 
-// CFStringToString converts a CFStringRef to a Go string.
-func CFStringToString(cfStr C.CFStringRef) string {
+// cfStringToString converts a CFStringRef to a Go string.
+func cfStringToString(cfStr C.CFStringRef) string {
 	length := C.CFStringGetLength(cfStr)
 	if length == 0 {
 		return ""
@@ -74,8 +74,8 @@ func CFStringToString(cfStr C.CFStringRef) string {
 	return string(buffer)
 }
 
-// MapToCFDictionary converts a Go map to a CFDictionaryRef.
-func MapToCFDictionary(m map[C.CFTypeRef]C.CFTypeRef) (C.CFDictionaryRef, error) {
+// mapToCFDictionary converts a Go map to a CFDictionaryRef.
+func mapToCFDictionary(m map[C.CFTypeRef]C.CFTypeRef) (C.CFDictionaryRef, error) {
 	keys := make([]unsafe.Pointer, 0, len(m))
 	values := make([]unsafe.Pointer, 0, len(m))
 	for k, v := range m {
@@ -89,8 +89,8 @@ func MapToCFDictionary(m map[C.CFTypeRef]C.CFTypeRef) (C.CFDictionaryRef, error)
 	return cfDict, nil
 }
 
-// CFDictionaryToMap converts a CFDictionaryRef to a Go map.
-func CFDictionaryToMap(cfDict C.CFDictionaryRef) map[C.CFTypeRef]C.CFTypeRef {
+// cfDictionaryToMap converts a CFDictionaryRef to a Go map.
+func cfDictionaryToMap(cfDict C.CFDictionaryRef) map[C.CFTypeRef]C.CFTypeRef {
 	count := C.CFDictionaryGetCount(cfDict)
 	if count == 0 {
 		return nil
@@ -105,16 +105,16 @@ func CFDictionaryToMap(cfDict C.CFDictionaryRef) map[C.CFTypeRef]C.CFTypeRef {
 	return m
 }
 
-// ConvertMapToCFDictionary converts a map[string]interface{} to a CFDictionaryRef.
-func ConvertMapToCFDictionary(attr map[string]interface{}) (C.CFDictionaryRef, error) {
+// convertMapToCFDictionary converts a map[string]interface{} to a CFDictionaryRef.
+func convertMapToCFDictionary(attr map[string]interface{}) (C.CFDictionaryRef, error) {
 	m := make(map[C.CFTypeRef]C.CFTypeRef)
 	for key, value := range attr {
-		keyRef, err := StringToCFString(key)
+		keyRef, err := stringToCFString(key)
 		if err != nil {
 			return NilCFDictionary, fmt.Errorf("error converting key to CFString: %v", err)
 		}
 
-		valueRef, err := ConvertToCFType(value)
+		valueRef, err := convertToCFType(value)
 		if err != nil {
 			C.CFRelease(C.CFTypeRef(keyRef))
 			return NilCFDictionary, fmt.Errorf("error converting value for key %s: %v", key, err)
@@ -123,7 +123,7 @@ func ConvertMapToCFDictionary(attr map[string]interface{}) (C.CFDictionaryRef, e
 		m[C.CFTypeRef(keyRef)] = valueRef
 	}
 
-	cfDict, err := MapToCFDictionary(m)
+	cfDict, err := mapToCFDictionary(m)
 	if err != nil {
 		for k, v := range m {
 			C.CFRelease(k)
@@ -134,40 +134,40 @@ func ConvertMapToCFDictionary(attr map[string]interface{}) (C.CFDictionaryRef, e
 	return cfDict, nil
 }
 
-// Release releases a CFTypeRef.
-func Release(ref C.CFTypeRef) {
+// release releases a CFTypeRef.
+func release(ref C.CFTypeRef) {
 	if ref != NilCFType {
 		C.CFRelease(ref)
 	}
 }
 
-// TimeToCFDate converts a Go time.Time to a CFDateRef.
-func TimeToCFDate(t time.Time) C.CFDateRef {
+// timeToCFDate converts a Go time.Time to a CFDateRef.
+func timeToCFDate(t time.Time) C.CFDateRef {
 	seconds := float64(t.Unix()) - 978307200 // Subtract seconds between 1970 and 2001
 	return C.CFDateCreate(C.kCFAllocatorDefault, C.CFAbsoluteTime(seconds))
 }
 
-// CFDateToTime converts a CFDateRef to a Go time.Time.
-func CFDateToTime(dateRef C.CFDateRef) time.Time {
+// cfDateToTime converts a CFDateRef to a Go time.Time.
+func cfDateToTime(dateRef C.CFDateRef) time.Time {
 	seconds := float64(C.CFDateGetAbsoluteTime(dateRef))
 	return time.Unix(int64(seconds+978307200), 0).UTC() // Add seconds between 1970 and 2001
 }
 
-// ConvertToCFType converts a Go value to its corresponding CFTypeRef.
-func ConvertToCFType(value interface{}) (C.CFTypeRef, error) {
+// convertToCFType converts a Go value to its corresponding CFTypeRef.
+func convertToCFType(value interface{}) (C.CFTypeRef, error) {
 	if value == nil {
 		return NilCFType, nil
 	}
 
 	switch v := value.(type) {
 	case string:
-		cfStr, err := StringToCFString(v)
+		cfStr, err := stringToCFString(v)
 		if err != nil {
 			return NilCFType, err
 		}
 		return C.CFTypeRef(cfStr), nil
 	case []byte:
-		cfData, err := BytesToCFData(v)
+		cfData, err := bytesToCFData(v)
 		if err != nil {
 			return NilCFType, err
 		}
@@ -178,7 +178,7 @@ func ConvertToCFType(value interface{}) (C.CFTypeRef, error) {
 		}
 		return C.CFTypeRef(C.kCFBooleanFalse), nil
 	case time.Time:
-		return C.CFTypeRef(TimeToCFDate(v)), nil
+		return C.CFTypeRef(timeToCFDate(v)), nil
 	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
 		var numRef C.CFNumberRef
 		switch num := v.(type) {
@@ -202,11 +202,19 @@ func ConvertToCFType(value interface{}) (C.CFTypeRef, error) {
 
 		// Handle generic maps
 		if m, ok := value.(map[string]interface{}); ok {
-			return convertMapToCFDictionary(m)
+			cfDict, err := convertMapToCFDictionary(m)
+			if err != nil {
+				return NilCFType, err
+			}
+			return C.CFTypeRef(cfDict), nil
 		}
 		mapValue := reflect.ValueOf(value)
 		if mapValue.Kind() == reflect.Map && mapValue.Type().Key().Kind() == reflect.String {
-			return convertMapToCFDictionary(mapValue.Interface())
+			cfDict, err := convertMapToCFDictionary(mapValue.Interface().(map[string]interface{}))
+			if err != nil {
+				return NilCFType, err
+			}
+			return C.CFTypeRef(cfDict), nil
 		}
 
 		return NilCFType, fmt.Errorf("unsupported type: %T", value)
@@ -217,7 +225,7 @@ func convertSliceToCFArray(slice interface{}) (C.CFTypeRef, error) {
 	sliceValue := reflect.ValueOf(slice)
 	cfValues := make([]C.CFTypeRef, sliceValue.Len())
 	for i := 0; i < sliceValue.Len(); i++ {
-		cfItem, err := ConvertToCFType(sliceValue.Index(i).Interface())
+		cfItem, err := convertToCFType(sliceValue.Index(i).Interface())
 		if err != nil {
 			return NilCFType, fmt.Errorf("error converting array item at index %d: %v", i, err)
 		}
@@ -227,41 +235,18 @@ func convertSliceToCFArray(slice interface{}) (C.CFTypeRef, error) {
 	return C.CFTypeRef(cfArray), nil
 }
 
-func convertMapToCFDictionary(m interface{}) (C.CFTypeRef, error) {
-	mapValue := reflect.ValueOf(m)
-	cfDict := make(map[C.CFTypeRef]C.CFTypeRef)
-	for _, key := range mapValue.MapKeys() {
-		keyStr := key.String()
-		cfKey, err := StringToCFString(keyStr)
-		if err != nil {
-			return NilCFType, fmt.Errorf("error converting key to CFString: %v", err)
-		}
-		cfValue, err := ConvertToCFType(mapValue.MapIndex(key).Interface())
-		if err != nil {
-			C.CFRelease(C.CFTypeRef(cfKey))
-			return NilCFType, fmt.Errorf("error converting value for key %s: %v", keyStr, err)
-		}
-		cfDict[C.CFTypeRef(cfKey)] = cfValue
-	}
-	result, err := MapToCFDictionary(cfDict)
-	if err != nil {
-		return NilCFType, err
-	}
-	return C.CFTypeRef(result), nil
-}
-
-// ConvertFromCFType converts a CFTypeRef to its corresponding Go value.
-func ConvertFromCFType(cfType C.CFTypeRef) (interface{}, error) {
+// convertFromCFType converts a CFTypeRef to its corresponding Go value.
+func convertFromCFType(cfType C.CFTypeRef) (interface{}, error) {
 	typeID := C.CFGetTypeID(cfType)
 	switch typeID {
 	case C.CFStringGetTypeID():
-		return CFStringToString(C.CFStringRef(cfType)), nil
+		return cfStringToString(C.CFStringRef(cfType)), nil
 	case C.CFDataGetTypeID():
-		return CFDataToBytes(C.CFDataRef(cfType))
+		return cfDataToBytes(C.CFDataRef(cfType))
 	case C.CFBooleanGetTypeID():
 		return C.CFBooleanGetValue(C.CFBooleanRef(cfType)) != 0, nil
 	case C.CFDateGetTypeID():
-		return CFDateToTime(C.CFDateRef(cfType)), nil
+		return cfDateToTime(C.CFDateRef(cfType)), nil
 	case C.CFNumberGetTypeID():
 		var intValue int
 		var floatValue float64
@@ -284,7 +269,7 @@ func ConvertFromCFType(cfType C.CFTypeRef) (interface{}, error) {
 		result := make([]interface{}, count)
 		for i := C.CFIndex(0); i < count; i++ {
 			item := C.CFArrayGetValueAtIndex(cfArray, i)
-			convertedItem, err := ConvertFromCFType(C.CFTypeRef(item))
+			convertedItem, err := convertFromCFType(C.CFTypeRef(item))
 			if err != nil {
 				return nil, fmt.Errorf("error converting array item at index %d: %v", i, err)
 			}
@@ -299,8 +284,8 @@ func ConvertFromCFType(cfType C.CFTypeRef) (interface{}, error) {
 		C.CFDictionaryGetKeysAndValues(cfDict, (*unsafe.Pointer)(unsafe.Pointer(&keys[0])), (*unsafe.Pointer)(unsafe.Pointer(&values[0])))
 		result := make(map[string]interface{}, count)
 		for i := C.CFIndex(0); i < count; i++ {
-			key := CFStringToString(C.CFStringRef(keys[i]))
-			value, err := ConvertFromCFType(values[i])
+			key := cfStringToString(C.CFStringRef(keys[i]))
+			value, err := convertFromCFType(values[i])
 			if err != nil {
 				return nil, fmt.Errorf("error converting dictionary value for key %s: %v", key, err)
 			}
