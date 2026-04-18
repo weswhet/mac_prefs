@@ -49,6 +49,14 @@ func main() {
 		fmt.Printf("App Value: %v\n", appValue)
 	}
 
+	// Check whether a preference is forced by management/MDM
+	isForced, err := mac_prefs.IsForcedApp("AppKey", "com.example.app")
+	if err != nil {
+		fmt.Printf("Error checking forced state: %v\n", err)
+	} else {
+		fmt.Printf("App Value Forced: %t\n", isForced)
+	}
+
 	// Delete a preference by setting it to nil
 	err = mac_prefs.SetApp("AppKey", nil, "com.example.app")
 	if err != nil {
@@ -65,6 +73,7 @@ func main() {
 - `Get(key string, applicationID string, scope PreferenceScope) (interface{}, error)`
 - `SetApp(key string, value interface{}, applicationID string) error`
 - `GetApp(key string, applicationID string) (interface{}, error)`
+- `IsForcedApp(key string, applicationID string) (bool, error)`
 
 ### Types
 

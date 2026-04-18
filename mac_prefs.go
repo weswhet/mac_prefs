@@ -226,3 +226,28 @@ func GetApp(key string, appID string) (interface{}, error) {
 
 	return convertFromCFType(value)
 }
+
+// IsForcedApp reports whether an application preference value is managed or forced.
+//
+// Parameters:
+//   - key: The preference key to inspect.
+//   - appID: The bundle identifier of the application for which to inspect the preference.
+//
+// Returns:
+//   - bool: True when the preference is forced by management, false otherwise.
+//   - error: An error if the CoreFoundation string conversion fails.
+func IsForcedApp(key string, appID string) (bool, error) {
+	cKey, err := stringToCFString(key)
+	if err != nil {
+		return false, fmt.Errorf("error creating CFString for key: %v", err)
+	}
+	defer release(C.CFTypeRef(cKey))
+
+	cAppID, err := stringToCFString(appID)
+	if err != nil {
+		return false, fmt.Errorf("error creating CFString for applicationID: %v", err)
+	}
+	defer release(C.CFTypeRef(cAppID))
+
+	return C.CFPreferencesAppValueIsForced(cKey, cAppID) == C.true, nil
+}

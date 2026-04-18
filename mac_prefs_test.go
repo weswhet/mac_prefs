@@ -384,3 +384,39 @@ func TestSetAppPreservesTimePrecision(t *testing.T) {
 		t.Fatalf("GetApp() time precision got = %s, want %s within %s", gotTime.Format(time.RFC3339Nano), want.Format(time.RFC3339Nano), time.Microsecond)
 	}
 }
+
+func TestIsForcedApp(t *testing.T) {
+	const existingKey = "TestAppForcedKey"
+	const missingKey = "TestAppForcedMissingKey"
+
+	if err := SetApp(existingKey, "not-managed", testAppID); err != nil {
+		t.Fatalf("SetApp() setup error = %v", err)
+	}
+
+	for _, tc := range []struct {
+		name string
+		key  string
+		want bool
+	}{
+		{
+			name: "existing unmanaged preference",
+			key:  existingKey,
+			want: false,
+		},
+		{
+			name: "missing preference",
+			key:  missingKey,
+			want: false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := IsForcedApp(tc.key, testAppID)
+			if err != nil {
+				t.Fatalf("IsForcedApp() error = %v", err)
+			}
+			if got != tc.want {
+				t.Fatalf("IsForcedApp() got = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
