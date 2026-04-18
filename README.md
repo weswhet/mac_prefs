@@ -29,30 +29,31 @@ Here are some examples of how to use the mac_prefs library:
 package main
 
 import (
-    "fmt"
-    "github.com/weswhet/mac_prefs"
+	"fmt"
+
+	"github.com/weswhet/mac_prefs"
 )
 
 func main() {
-    // Set an application-specific preference
-    err = mac_prefs.SetApp("AppKey", 42, "com.example.app")
-    if err != nil {
-        fmt.Printf("Error setting app preference: %v\n", err)
-    }
+	// Set an application-specific preference
+	err := mac_prefs.SetApp("AppKey", 42, "com.example.app")
+	if err != nil {
+		fmt.Printf("Error setting app preference: %v\n", err)
+	}
 
-    // Get an application-specific preference
-    appValue, err := mac_prefs.GetApp("AppKey", "com.example.app")
-    if err != nil {
-        fmt.Printf("Error getting app preference: %v\n", err)
-    } else {
-        fmt.Printf("App Value: %v\n", appValue)
-    }
+	// Get an application-specific preference
+	appValue, err := mac_prefs.GetApp("AppKey", "com.example.app")
+	if err != nil {
+		fmt.Printf("Error getting app preference: %v\n", err)
+	} else {
+		fmt.Printf("App Value: %v\n", appValue)
+	}
 
-    // Delete a preference by setting it to nil
-    err = mac_prefs.SetApp("AppKey", nil, "com.example.app")
-    if err != nil {
-        fmt.Printf("Error deleting preference: %v\n", err)
-    }
+	// Delete a preference by setting it to nil
+	err = mac_prefs.SetApp("AppKey", nil, "com.example.app")
+	if err != nil {
+		fmt.Printf("Error deleting preference: %v\n", err)
+	}
 }
 ```
 

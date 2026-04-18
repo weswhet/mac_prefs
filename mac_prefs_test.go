@@ -286,3 +286,101 @@ func TestSetDeleteValue(t *testing.T) {
 		t.Errorf("Value not deleted. Got %v, want nil", got)
 	}
 }
+
+func TestSetAppSupportsUnsignedIntegers(t *testing.T) {
+	const key = "TestAppUintKey"
+
+	if err := SetApp(key, uint(42), testAppID); err != nil {
+		t.Fatalf("SetApp() error = %v", err)
+	}
+
+	got, err := GetApp(key, testAppID)
+	if err != nil {
+		t.Fatalf("GetApp() error = %v", err)
+	}
+	if got != 42 {
+		t.Fatalf("GetApp() got = %v (%T), want 42 (int)", got, got)
+	}
+}
+
+func TestSetAppRejectsOverflowingUnsignedIntegers(t *testing.T) {
+	const key = "TestAppUintOverflowKey"
+
+	if err := SetApp(key, uint64(1<<63), testAppID); err == nil {
+		t.Fatal("SetApp() expected overflow error for uint64 value above MaxInt64")
+	}
+}
+
+func TestSetAppSupportsEmptyCollections(t *testing.T) {
+	const sliceKey = "TestAppEmptySliceKey"
+	const mapKey = "TestAppEmptyMapKey"
+
+	if err := SetApp(sliceKey, []string{}, testAppID); err != nil {
+		t.Fatalf("SetApp() empty slice error = %v", err)
+	}
+
+	gotSlice, err := GetApp(sliceKey, testAppID)
+	if err != nil {
+		t.Fatalf("GetApp() empty slice error = %v", err)
+	}
+	if !reflect.DeepEqual(gotSlice, []interface{}{}) {
+		t.Fatalf("GetApp() empty slice got = %#v (%T), want []interface{}{}", gotSlice, gotSlice)
+	}
+
+	if err := SetApp(mapKey, map[string]interface{}{}, testAppID); err != nil {
+		t.Fatalf("SetApp() empty map error = %v", err)
+	}
+
+	gotMap, err := GetApp(mapKey, testAppID)
+	if err != nil {
+		t.Fatalf("GetApp() empty map error = %v", err)
+	}
+	if !reflect.DeepEqual(gotMap, map[string]interface{}{}) {
+		t.Fatalf("GetApp() empty map got = %#v (%T), want map[string]interface{}{}", gotMap, gotMap)
+	}
+}
+
+func TestSetAppSupportsTypedStringMaps(t *testing.T) {
+	const key = "TestAppTypedMapKey"
+
+	if err := SetApp(key, map[string]string{"name": "mac_prefs"}, testAppID); err != nil {
+		t.Fatalf("SetApp() typed map error = %v", err)
+	}
+
+	got, err := GetApp(key, testAppID)
+	if err != nil {
+		t.Fatalf("GetApp() typed map error = %v", err)
+	}
+
+	want := map[string]interface{}{"name": "mac_prefs"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("GetApp() typed map got = %#v (%T), want %#v (%T)", got, got, want, want)
+	}
+}
+
+func TestSetAppPreservesTimePrecision(t *testing.T) {
+	const key = "TestAppTimePrecisionKey"
+
+	want := time.Date(2023, 5, 1, 12, 0, 0, 123456789, time.UTC)
+	if err := SetApp(key, want, testAppID); err != nil {
+		t.Fatalf("SetApp() time precision error = %v", err)
+	}
+
+	got, err := GetApp(key, testAppID)
+	if err != nil {
+		t.Fatalf("GetApp() time precision error = %v", err)
+	}
+
+	gotTime, ok := got.(time.Time)
+	if !ok {
+		t.Fatalf("GetApp() time precision got = %v (%T), want time.Time", got, got)
+	}
+
+	diff := gotTime.Sub(want)
+	if diff < 0 {
+		diff = -diff
+	}
+	if diff > time.Microsecond {
+		t.Fatalf("GetApp() time precision got = %s, want %s within %s", gotTime.Format(time.RFC3339Nano), want.Format(time.RFC3339Nano), time.Microsecond)
+	}
+}
