@@ -3,6 +3,7 @@
 package mac_prefs
 
 import (
+	"os/user"
 	"reflect"
 	"testing"
 	"time"
@@ -248,6 +249,93 @@ func TestGetApp(t *testing.T) {
 				t.Errorf("GetApp() got = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestResolveUserName(t *testing.T) {
+	tests := []struct {
+		name          string
+		user          UserType
+		wantRelease   bool
+		wantValue     string
+		checkCFString bool
+	}{
+		{
+			name:        "current user constant",
+			user:        CurrentUser,
+			wantRelease: false,
+		},
+		{
+			name:        "any user constant",
+			user:        AnyUser,
+			wantRelease: false,
+		},
+		{
+			name:          "literal username",
+			user:          UserType("alice"),
+			wantRelease:   true,
+			wantValue:     "alice",
+			checkCFString: true,
+		},
+		{
+			name:          "empty literal username",
+			user:          UserType(""),
+			wantRelease:   true,
+			wantValue:     "",
+			checkCFString: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, releaseRef, err := resolveUserName(tt.user)
+			if err != nil {
+				t.Fatalf("resolveUserName() error = %v", err)
+			}
+			if releaseRef != tt.wantRelease {
+				t.Fatalf("resolveUserName() releaseRef = %v, want %v", releaseRef, tt.wantRelease)
+			}
+			if tt.checkCFString {
+				defer releaseCFString(got)
+				if gotValue := cfStringToString(got); gotValue != tt.wantValue {
+					t.Fatalf("resolveUserName() CFString = %q, want %q", gotValue, tt.wantValue)
+				}
+			}
+		})
+	}
+}
+
+func TestSetGetSupportsLiteralCurrentUser(t *testing.T) {
+	currentUser, err := user.Current()
+	if err != nil {
+		t.Fatalf("user.Current() error = %v", err)
+	}
+	if currentUser.Username == "" {
+		t.Fatal("user.Current() returned an empty username")
+	}
+
+	key := "TestLiteralCurrentUserKey"
+	want := "TestLiteralCurrentUserValue"
+	scope := PreferenceScope{
+		User: UserType(currentUser.Username),
+		Host: AnyHost,
+	}
+
+	if err := Set(key, want, testAppID, scope); err != nil {
+		t.Fatalf("Set() error = %v", err)
+	}
+	defer func() {
+		if err := Set(key, nil, testAppID, scope); err != nil {
+			t.Fatalf("cleanup Set() error = %v", err)
+		}
+	}()
+
+	got, err := Get(key, testAppID, scope)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if got != want {
+		t.Fatalf("Get() got = %v, want %v", got, want)
 	}
 }
 

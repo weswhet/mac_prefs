@@ -65,6 +65,15 @@ func main() {
 }
 ```
 
+`PreferenceScope.User` also accepts literal usernames when you need to read or write a specific user's preference domain:
+
+```go
+scope := mac_prefs.PreferenceScope{
+	User: mac_prefs.UserType("alice"),
+	Host: mac_prefs.AnyHost,
+}
+```
+
 ## API Reference
 
 ### Functions
@@ -77,7 +86,7 @@ func main() {
 
 ### Types
 
-- `PreferenceScope`: An enum representing the scope of the preference (e.g., `CurrentUserCurrentHost`, `CurrentUserAnyHost`, `AnyUserCurrentHost`, `AnyUserAnyHost`)
+- `PreferenceScope`: Defines the preference scope. `User` accepts `CurrentUser`, `AnyUser`, or a literal username. `Host` accepts `CurrentHost` or `AnyHost`.
 
 #### The above preference scopes will be written to permanent storage at the following locations.
 

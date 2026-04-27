@@ -11,13 +11,15 @@ import (
 	"fmt"
 )
 
-// UserType represents the type of user for preferences
+// UserType represents the user scope for preferences.
+// Use the predefined constants or a literal username.
 type UserType string
 
 // HostType represents the type of host for preferences
 type HostType string
 
-// PreferenceScope defines the scope for preferences
+// PreferenceScope defines the scope for preferences.
+// User may be a predefined constant or a literal username.
 type PreferenceScope struct {
 	User UserType
 	Host HostType
@@ -74,14 +76,12 @@ func Set(key string, value interface{}, applicationID string, scope PreferenceSc
 	}
 	defer release(C.CFTypeRef(cAppID))
 
-	var cUserName C.CFStringRef
-	switch scope.User {
-	case CurrentUser:
-		cUserName = C.kCFPreferencesCurrentUser
-	case AnyUser:
-		cUserName = C.kCFPreferencesAnyUser
-	default:
-		return fmt.Errorf("invalid user type in scope: must be CurrentUser or AnyUser")
+	cUserName, releaseUserName, err := resolveUserName(scope.User)
+	if err != nil {
+		return err
+	}
+	if releaseUserName {
+		defer release(C.CFTypeRef(cUserName))
 	}
 
 	var cHostName C.CFStringRef
@@ -167,14 +167,12 @@ func Get(key string, applicationID string, scope PreferenceScope) (interface{}, 
 	}
 	defer release(C.CFTypeRef(cAppID))
 
-	var cUserName C.CFStringRef
-	switch scope.User {
-	case CurrentUser:
-		cUserName = C.kCFPreferencesCurrentUser
-	case AnyUser:
-		cUserName = C.kCFPreferencesAnyUser
-	default:
-		return nil, fmt.Errorf("invalid user type in scope: must be CurrentUser or AnyUser")
+	cUserName, releaseUserName, err := resolveUserName(scope.User)
+	if err != nil {
+		return nil, err
+	}
+	if releaseUserName {
+		defer release(C.CFTypeRef(cUserName))
 	}
 
 	var cHostName C.CFStringRef
@@ -250,4 +248,23 @@ func IsForcedApp(key string, appID string) (bool, error) {
 	defer release(C.CFTypeRef(cAppID))
 
 	return C.CFPreferencesAppValueIsForced(cKey, cAppID) == C.true, nil
+}
+
+func resolveUserName(userName UserType) (C.CFStringRef, bool, error) {
+	switch userName {
+	case CurrentUser:
+		return C.kCFPreferencesCurrentUser, false, nil
+	case AnyUser:
+		return C.kCFPreferencesAnyUser, false, nil
+	default:
+		cUserName, err := stringToCFString(string(userName))
+		if err != nil {
+			return NilCFString, false, fmt.Errorf("error creating CFString for userName: %v", err)
+		}
+		return cUserName, true, nil
+	}
+}
+
+func releaseCFString(ref C.CFStringRef) {
+	release(C.CFTypeRef(ref))
 }
